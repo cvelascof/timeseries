@@ -3,9 +3,9 @@ two-dimensional fields."""
 
 import numpy as np
 
-def temporal_autocorrelation(X, k, conditional=False, cond_thr=None):
-    """Compute lag-l autocorrelation coefficients gamma_l, l=1,2,...k, for a 
-    time series of two-dimensional input fields.
+def temporal_autocorrelation(X, conditional=False, cond_thr=None):
+    """Compute lag-l autocorrelation coefficients gamma_l, l=1,2,...,n-1, for a 
+    time series of n two-dimensional input fields.
     
     Parameters
     ----------
@@ -14,9 +14,6 @@ def temporal_autocorrelation(X, k, conditional=False, cond_thr=None):
       n two-dimensional fields of shape (L, L). The input fields are assumed to 
       be in increasing order with respect to time, and the time step is assumed 
       to be regular (i.e. no missing data).
-    k : int
-      The number of time lags for which to compute the autocorrelation 
-      coefficients.
     conditional : bool
       If set to True, compute the correlation coefficients conditionally by 
       excluding the areas where the values are below the given threshold. This 
@@ -28,8 +25,8 @@ def temporal_autocorrelation(X, k, conditional=False, cond_thr=None):
     Returns
     -------
     out : ndarray
-      Array of length k containing the temporal autocorrelation coefficients 
-      for time lags l=1,2,...,k.
+      Array of length n-1 containing the temporal autocorrelation coefficients 
+      for time lags l=1,2,...,n-1.
     """
     if len(X.shape) != 3:
         raise ValueError("the input X is not three-dimensional array")
@@ -39,13 +36,13 @@ def temporal_autocorrelation(X, k, conditional=False, cond_thr=None):
     if conditional and cond_thr is None:
         raise Exception("conditional=True, but cond_thr was not supplied")
     
-    GAMMA = np.empty((n, k))
+    GAMMA = np.empty(X.shape[0]-1)
     
     MASK = np.ones((X.shape[1], X.shape[2]), dtype=bool)
     for k in xrange(X.shape[0]):
-      MASK = np.logical_and(MASK, np.isfinite(X[k, :, :))
-      if conditional:
-          MASK = np.logical_and(MASK, X[k, :, :] >= cond_thr)
+        MASK = np.logical_and(MASK, np.isfinite(X[k, :, :))
+        if conditional:
+            MASK = np.logical_and(MASK, X[k, :, :] >= cond_thr)
     
     gamma = []
     for k in xrange(X.shape[0] - 1):
