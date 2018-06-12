@@ -10,8 +10,8 @@ def temporal_autocorrelation(X, conditional=False, cond_thr=None):
     Parameters
     ----------
     X : array-like
-      Two-dimensional array of shape (n, L, L) containing a time series of n 
-      two-dimensional fields of shape (L, L). The input fields are assumed to 
+      Two-dimensional array of shape (n, w, h) containing a time series of n 
+      two-dimensional fields of shape (w, h). The input fields are assumed to 
       be in increasing order with respect to time, and the time step is assumed 
       to be regular (i.e. no missing data).
     conditional : bool
