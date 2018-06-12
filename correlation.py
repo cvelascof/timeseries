@@ -10,8 +10,8 @@ def temporal_autocorrelation(X, conditional=False, cond_thr=None):
     Parameters
     ----------
     X : array-like
-      Three-dimensional array of shape (n, L, L) containing the time series of 
-      n two-dimensional fields of shape (L, L). The input fields are assumed to 
+      Two-dimensional array of shape (n, L, L) containing a time series of n 
+      two-dimensional fields of shape (L, L). The input fields are assumed to 
       be in increasing order with respect to time, and the time step is assumed 
       to be regular (i.e. no missing data).
     conditional : bool
@@ -30,17 +30,14 @@ def temporal_autocorrelation(X, conditional=False, cond_thr=None):
     """
     if len(X.shape) != 3:
         raise ValueError("the input X is not three-dimensional array")
-    if X.shape[1] != X.shape[2]:
-        raise ValueError("the dimensions of the input fields are %dx%d, but square shape expected" % \
-                         (X.shape[1], X.shape[2]))
     if conditional and cond_thr is None:
         raise Exception("conditional=True, but cond_thr was not supplied")
     
-    GAMMA = np.empty(X.shape[0]-1)
+    gamma = np.empty(X.shape[0]-1)
     
     MASK = np.ones((X.shape[1], X.shape[2]), dtype=bool)
     for k in xrange(X.shape[0]):
-        MASK = np.logical_and(MASK, np.isfinite(X[k, :, :))
+        MASK = np.logical_and(MASK, np.isfinite(X[k, :, :]))
         if conditional:
             MASK = np.logical_and(MASK, X[k, :, :] >= cond_thr)
     
