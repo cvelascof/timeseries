@@ -3,24 +3,20 @@ two-dimensional fields."""
 
 import numpy as np
 
-def temporal_autocorrelation(X, conditional=False, cond_thr=None):
+def temporal_autocorrelation(X, MASK=None):
     """Compute lag-l autocorrelation coefficients gamma_l, l=1,2,...,n-1, for a 
     time series of n two-dimensional input fields.
     
     Parameters
     ----------
-    X : array-like
+    X : array_like
       Two-dimensional array of shape (n, w, h) containing a time series of n 
       two-dimensional fields of shape (w, h). The input fields are assumed to 
       be in increasing order with respect to time, and the time step is assumed 
-      to be regular (i.e. no missing data).
-    conditional : bool
-      If set to True, compute the correlation coefficients conditionally by 
-      excluding the areas where the values are below the given threshold. This 
-      requires cond_thr to be set.
-    cond_thr : float
-      Threshold value for conditional computation of correlation coefficients, 
-      see above.
+      to be regular (i.e. no missing data). X is required to have finite values.
+    MASK : array_like
+      Optional mask to use for computing the correlation coefficients. Pixels 
+      with MASK==False are excluded from the computations.
     
     Returns
     -------
@@ -30,16 +26,16 @@ def temporal_autocorrelation(X, conditional=False, cond_thr=None):
     """
     if len(X.shape) != 3:
         raise ValueError("the input X is not three-dimensional array")
-    if conditional and cond_thr is None:
-        raise Exception("conditional=True, but cond_thr was not supplied")
+    if MASK is not None and MASK.shape != X.shape[1:3]:
+      raise ValueError("dimension mismatch between X and MASK: X.shape=%s, MASK.shape=%s" % \
+        (str(X.shape), str(MASK.shape)))
+    if np.any(~np.isfinite(X)):
+      raise ValueError("X contains non-finite values")
     
     gamma = np.empty(X.shape[0]-1)
     
-    MASK = np.ones((X.shape[1], X.shape[2]), dtype=bool)
-    for k in xrange(X.shape[0]):
-        MASK = np.logical_and(MASK, np.isfinite(X[k, :, :]))
-        if conditional:
-            MASK = np.logical_and(MASK, X[k, :, :] >= cond_thr)
+    if MASK is None:
+      MASK = np.ones((X.shape[1], X.shape[2]), dtype=bool)
     
     gamma = []
     for k in xrange(X.shape[0] - 1):
