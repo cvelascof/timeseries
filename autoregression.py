@@ -83,5 +83,36 @@ def estimate_ar_params_yw(gamma, include_perturb_term=False):
     
     return phi
 
-#def iterate_ar_model(X, phi):
-#  
+def iterate_ar_model(X, phi, EPS=None):
+    """Apply an AR(p) model to a time-series of two-dimensional fields.
+    
+    Parameters
+    ----------
+    X : array_like
+      Three-dimensional array of shape (n,w,h) containing a time series of n 
+      two-dimensional fields of shape (w,h).
+    phi : array_like
+      Array of length p specifying the parameters of the AR(p) model.
+    EPS : array_like
+      Optional perturbation field for the AR(p) process.
+    """
+    if X.shape[0] != len(phi):
+      raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))
+    
+    if EPS is not None and EPS.shape != (X.shape[1], X.shape[2]):
+        raise ValueError("dimension mismatch between X and EPS: X.shape=%s, EPS.shape=%s" % (str(X.shape), str(EPS.shape)))
+    
+    X_new = np.zeros((X.shape[1], X.shape[2]))
+    
+    if EPS is None:
+        p = len(phi)
+    else:
+        p = len(phi) - 1
+    
+    for i in xrange(p):
+        X_new += phi[i] * X[-(i+1), :, :]
+    
+    if EPS is not None:
+        X_new += phi[-1] * EPS
+    
+    return np.stack(list(X[1:, :, :]) + [X_new])
