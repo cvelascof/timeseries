@@ -89,10 +89,14 @@ def iterate_ar_model(X, phi, EPS=None):
     Parameters
     ----------
     X : array_like
-      Three-dimensional array of shape (n,w,h) containing a time series of n 
-      two-dimensional fields of shape (w,h).
+      Three-dimensional array of shape (p,w,h) containing a time series of p 
+      two-dimensional fields of shape (w,h). The fields are assumed to be in 
+      ascending order by time, and the timesteps are assumed to be regular.
     phi : array_like
-      Array of length p specifying the parameters of the AR(p) model.
+      Array of length p specifying the parameters of the AR(p) model. The 
+      parameters are in ascending order by increasing time lag. If EPS is not 
+      None, the last element of phi is interpreted as the parameter corresponding 
+      to the perturbation term.
     EPS : array_like
       Optional perturbation field for the AR(p) process.
     """
