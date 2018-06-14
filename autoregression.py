@@ -23,7 +23,7 @@ def adjust_lag2_corrcoef(gamma_1, gamma_2):
     
     return gamma_2
 
-def estimate_ar_params_yw(gamma, include_perturb_term=False):
+def estimate_ar_params_yw(gamma):
     """Estimate the parameters of an AR(p) model from the Yule-Walker equations 
     using the given set of autocorrelation coefficients.
     
@@ -33,53 +33,44 @@ def estimate_ar_params_yw(gamma, include_perturb_term=False):
       Array of length p containing the lag-l, l=1,2,...p, temporal autocorrelation 
       coefficients. The correlation coefficients are assumed to be in ascending 
       order with respect to time lag.
-    include_perturb_term : bool
-      If True, calculate the perturbation term coefficients for the AR(p) model.
     
     Returns
     -------
     out : ndarray
-      If include_perturb_term is False, an array of shape (n,p) containing the 
-      AR(p) parameters for for the lag-p terms for each cascade level. If 
-      include_perturb_term is True, the shape of the array is (n,p+1), where the 
-      last column contains the perturbation term coefficients.
+      An array of shape (n,p+1) containing the AR(p) parameters for for the 
+      lag-p terms for each cascade level, and also the standard deviation of 
+      the innovation term.
     """
     p = len(gamma)
     
-    if include_perturb_term:
-        phi = np.empty(p+1)
-    else:
-        phi = np.empty(p)
+    phi = np.empty(p+1)
     
     g = np.hstack([[1.0], gamma])
     G = []
     for j in xrange(p):
         G.append(np.roll(g[:-1], j))
     G = np.array(G)
-    phi = np.linalg.solve(G, g[1:].flatten())
+    phi_ = np.linalg.solve(G, g[1:].flatten())
     
     # Check that the absolute values of the roots of the characteristic 
     # polynomial are less than one. Otherwise the AR(p) model is not stationary.
-    r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi[i] \
+    r = np.array([np.abs(r_) for r_ in np.roots([1.0 if i == 0 else -phi_[i] \
                   for i in xrange(p)])])
     if any(r >= 1):
         raise Exception("nonstationary AR(p) process")
     
-    if not include_perturb_term:
-        phi[:p] = phi
-    else:
-        c = 1.0
-        for j in xrange(p):
-          c -= gamma[j] * phi[j]
-        phi_pert = np.sqrt(c)
-        
-        # If the expression inside the square root is negative, phi_pert cannot 
-        # be computed and it is set to zero instead.
-        if not np.isfinite(phi_pert):
-            phi_pert = 0.0
-        
-        phi[:p] = phi
-        phi[-1] = phi_pert
+    c = 1.0
+    for j in xrange(p):
+      c -= gamma[j] * phi_[j]
+    phi_pert = np.sqrt(c)
+    
+    # If the expression inside the square root is negative, phi_pert cannot 
+    # be computed and it is set to zero instead.
+    if not np.isfinite(phi_pert):
+        phi_pert = 0.0
+    
+    phi[:p] = phi_
+    phi[-1] = phi_pert
     
     return phi
 
@@ -93,14 +84,14 @@ def iterate_ar_model(X, phi, EPS=None):
       two-dimensional fields of shape (w,h). The fields are assumed to be in 
       ascending order by time, and the timesteps are assumed to be regular.
     phi : array_like
-      Array of length p specifying the parameters of the AR(p) model. The 
-      parameters are in ascending order by increasing time lag. If EPS is not 
-      None, the last element of phi is interpreted as the parameter corresponding 
-      to the perturbation term.
+      Array of length p+1 specifying the parameters of the AR(p) model. The 
+      parameters are in ascending order by increasing time lag, and the last 
+      element is the parameter corresponding to the innovation term EPS.
     EPS : array_like
-      Optional perturbation field for the AR(p) process.
+      Optional perturbation field for the AR(p) process. If EPS is None, the 
+      innovation term is not added.
     """
-    if X.shape[0] != len(phi):
+    if X.shape[0] != len(phi)-1:
       raise ValueError("dimension mismatch between X and phi: X.shape[0]=%d, len(phi)=%d" % (X.shape[0], len(phi)))
     
     if EPS is not None and EPS.shape != (X.shape[1], X.shape[2]):
@@ -108,10 +99,7 @@ def iterate_ar_model(X, phi, EPS=None):
     
     X_new = np.zeros((X.shape[1], X.shape[2]))
     
-    if EPS is None:
-        p = len(phi)
-    else:
-        p = len(phi) - 1
+    p = len(phi) - 1
     
     for i in xrange(p):
         X_new += phi[i] * X[-(i+1), :, :]
